@@ -90,7 +90,6 @@ class GHAapp < Sinatra::Application
 
 
 
-
 ########## Events
 #
 # This is the webhook endpoint that GH will call with events, and hence where we will do our event handling
@@ -142,7 +141,6 @@ class GHAapp < Sinatra::Application
 #
 
   helpers do
-
     # This is our handler for the event that you care about! Of course, you'll want to change the name to reflect
     # the actual event name! But this is where you will add code to process the event.
     def handle_the_event_that_i_care_about(payload)
@@ -152,10 +150,20 @@ class GHAapp < Sinatra::Application
       # grab the last x unique branches merged to test_env_branch (based on commits?)
       # find the most recent shared branch between master and test_env_branch
       # print unique branches merged to test_env_branch since shared branch
-      logger.debug 'Commit made.'
+      logger.debug get_branches
       true
     end
 
+    def get_branches
+      api_url = 'https://api.github.com/repos/gwieneke/gw_test/branches'
+      return_api_json(api_url)
+    end
+
+    def return_api_json(api_url)
+      uri = URI.parse(URI.encode(api_url))
+      api_response = Net::HTTP.get(uri)
+      JSON.parse(api_response)
+    end
   end
 
 
