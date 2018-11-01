@@ -127,10 +127,8 @@ class GHAapp < Sinatra::Application
     case request.env['HTTP_X_GITHUB_EVENT']
     when 'push'
       if payload['ref'] === 'refs/heads/test_env_branch'
-        logger.debug 'Push handled.'
         handle_the_event_that_i_care_about(payload)
       end
-      logger.debug 'Push made.'
     end
 
     'ok'  # we have to return _something_ ;)
