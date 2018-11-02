@@ -76,23 +76,20 @@ class GHAapp < Sinatra::Application
 
   helpers do
     def return_branch_diff_vs_master
-      # grab the last x unique branches merged to master (based on commits?)
-      # grab the last x unique branches merged to test_env_branch (based on commits?)
-      # find the most recent shared branch between master and test_env_branch
-      # print unique branches merged to test_env_branch since shared branch
+      # grab the last x commits in to master (based on sha?)
+      # grab the last x commits merged to branch (based on sha?)
+      # find the most recent shared sha between master and test_env_branch
+      # find shas merged to env branch after latest shared sha
+      # derive unique branches merged to test_env_branch based on above shas
 
-
-      logger.debug commits_diverging_from_master("test_env_branch")
-      # logger.debug branch_diffs
-      # logger.debug `curl -u 'gwieneke' 'https://api.github.com/repos/gwieneke/gw_test/branches/master'`
+      logger.debug branch_diffs
       true
     end
 
     def branch_diffs
-      # branch_names = ["react", "sanbox", "sandbox2", "sandbox3"]
       branch_names = ["test_env_branch"]
       branch_names.each do |br|
-        logger.debug br + "divergent commits:"
+        logger.debug br + ' divergent commits:'
         logger.debug commits_diverging_from_master(br)
       end
     end
