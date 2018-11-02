@@ -6,6 +6,7 @@ require 'json'
 require 'openssl'
 require 'octokit'
 require 'jwt'
+require 'rest-client'
 require 'time' # This is necessary to get the ISO 8601 representation of a Time object
 
 set :bind, '127.0.0.1'
@@ -42,6 +43,10 @@ class GHAapp < Sinatra::Application
   # Get the app identifier—an integer—from your app page after you create your app. This isn't actually a secret,
   # but it is something easier to configure at runtime.
   APP_IDENTIFIER = ENV['GITHUB_APP_IDENTIFIER']
+
+  REPO_NAME = ENV['REPO_NAME']
+  GH_USER = ENV['GH_USER']
+  GH_PASS = ENV['GH_PASS']
 
 
   ########## Configure Sinatra
@@ -150,21 +155,28 @@ class GHAapp < Sinatra::Application
     end
 
     def env_branches
-      api_url = [REPO_NAME] + '/branches'
+      api_url = REPO_NAME + '/branches'
       return_api_json(api_url)
     end
 
     def commits_for_branch(branch_name)
-      branch_api_url = [REPO_NAME] + "/branches/#{branch_name}"
+      branch_api_url = REPO_NAME + "/branches/#{branch_name}"
       branch_data = return_api_json(branch_api_url)
       sha = branch_data["commit"]["sha"]
-      commit_api_url = [REPO_NAME] + "/commits?per_page=100&sha=#{sha}"
+      commit_api_url = REPO_NAME + "/commits?per_page=100&sha=#{sha}"
       return_api_json(commit_api_url)
     end
 
-    def return_api_json(api_url)
-      uri = URI.parse(URI.encode(api_url))
-      api_response = Net::HTTP.get(uri)
+    def return_api_json(api_url, params = {})
+      uri = URI.encode(api_url)
+      # api_response = Net::HTTP.get(uri)
+      api_response = RestClient::Request.execute(
+        method: :get,
+        url: uri,
+        username: GH_USER,
+        password: GH_PASS,
+        headers: {params: params}
+      )
       JSON.parse(api_response)
     end
   end
