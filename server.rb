@@ -76,22 +76,41 @@ class GHAapp < Sinatra::Application
 
   helpers do
     def return_branch_diff_vs_master
-      # gather branches
-
       # grab the last x unique branches merged to master (based on commits?)
       # grab the last x unique branches merged to test_env_branch (based on commits?)
       # find the most recent shared branch between master and test_env_branch
       # print unique branches merged to test_env_branch since shared branch
-      logger.debug commits_for_branch("test_env_branch")
+
+
+      logger.debug commits_diverging_from_master("test_env_branch")
+      # logger.debug branch_diffs
+      # logger.debug `curl -u 'gwieneke' 'https://api.github.com/repos/gwieneke/gw_test/branches/master'`
       true
     end
 
-    def env_branches
-      api_url = REPO_NAME + '/branches'
-      return_api_json(api_url)
+    def branch_diffs
+      # branch_names = ["react", "sanbox", "sandbox2", "sandbox3"]
+      branch_names = ["test_env_branch"]
+      branch_names.each do |br|
+        logger.debug br + "divergent commits:"
+        logger.debug commits_diverging_from_master(br)
+      end
     end
 
-    def commits_for_branch(branch_name)
+    def commits_diverging_from_master(branch_name)
+      master_shas = recent_100_shas_for_branch("master")
+      branch_shas = recent_100_shas_for_branch(branch_name)
+
+      intersection_index = branch_shas.find_index((master_shas & branch_shas).first)
+      branch_shas[0..(intersection_index - 1)]
+    end
+
+    def recent_100_shas_for_branch(branch_name)
+      commits = recent_100_commits_for_branch(branch_name)
+      commits.map { |c| c["sha"] }
+    end
+
+    def recent_100_commits_for_branch(branch_name)
       branch_api_url = REPO_NAME + "/branches/#{branch_name}"
       branch_data = return_api_json(branch_api_url)
       sha = branch_data["commit"]["sha"]
