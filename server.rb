@@ -96,6 +96,10 @@ class GHAapp < Sinatra::Application
   #
   # This is the webhook endpoint that GH will call with events, and hence where we will do our event handling
 
+  get '/' do
+    "#{handle_the_event_that_i_care_about}"
+  end
+
   post '/' do
     request.body.rewind
     payload_raw = request.body.read # We need the raw text of the body to check the webhook signature
@@ -128,9 +132,8 @@ class GHAapp < Sinatra::Application
     when 'push'
       if payload['ref'] == 'refs/heads/test_env_branch'
         handle_the_event_that_i_care_about
-      end
+      end    
     end
-
     'ok'  # we have to return _something_ ;)
   end
 
@@ -150,13 +153,40 @@ class GHAapp < Sinatra::Application
       # grab the last x unique branches merged to test_env_branch (based on commits?)
       # find the most recent shared branch between master and test_env_branch
       # print unique branches merged to test_env_branch since shared branch
+
       logger.debug env_branches
+      logger.debug latest_master_commit
+      logger.debug commits_for_master
       true
     end
 
     def env_branches
+      branch_arr = []
       api_url = REPO_NAME + '/branches'
-      return_api_json(api_url)
+      return_api_json(api_url).each do |br|
+        branch_arr.push br["name"] unless br["name"] == "master"
+      end
+      branch_arr.each do |br|
+        logger.debug commits_for_branch(br)
+      end
+    end
+
+    def latest_master_commit
+      branch_api_url = REPO_NAME + "/branches/master"
+      master_data = return_api_json(branch_api_url)
+      master_data["commit"]["sha"]
+    end
+
+    def commits_for_master
+      commits = []
+      branch_api_url = REPO_NAME + "/branches/master"
+      branch_data = return_api_json(branch_api_url)
+      sha = branch_data["commit"]["sha"]
+      commit_api_url = REPO_NAME + "/commits?per_page=100&sha=#{sha}"
+      return_api_json(commit_api_url).each do |c|
+        commits.push c["sha"]
+      end
+      commits
     end
 
     def commits_for_branch(branch_name)
