@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'sinatra'
 require 'logger'
 require 'json'
@@ -9,60 +11,56 @@ require 'time' # This is necessary to get the ISO 8601 representation of a Time 
 set :bind, '127.0.0.1'
 set :port, 3000
 
-#
-#
-# This is a boilerplate server for your own GitHub App. You can read more about GitHub Apps here:
-# https://developer.github.com/apps/
-#
-# On its own, this app does absolutely nothing, except that it can be installed.
-# It's up to you to add fun functionality!
-# You can check out one example in advanced_server.rb.
-#
-# This code is a Sinatra app, for two reasons.
-# First, because the app will require a landing page for installation.
-# Second, in anticipation that you will want to receive events over a webhook from GitHub, and respond to those
-# in some way. Of course, not all apps need to receive and process events! Feel free to rip out the event handling
-# code if you don't need it.
-#
-# Have fun! Please reach out to us if you have any questions, or just to show off what you've built!
-#
+  # This is a boilerplate server for your own GitHub App. You can read more about GitHub Apps here:
+  # https://developer.github.com/apps/
+  #
+  # On its own, this app does absolutely nothing, except that it can be installed.
+  # It's up to you to add fun functionality!
+  # You can check out one example in advanced_server.rb.
+  #
+  # This code is a Sinatra app, for two reasons.
+  # First, because the app will require a landing page for installation.
+  # Second, in anticipation that you will want to receive events over a webhook from GitHub, and respond to those
+  # in some way. Of course, not all apps need to receive and process events! Feel free to rip out the event handling
+  # code if you don't need it.
+  #
+  # Have fun! Please reach out to us if you have any questions, or just to show off what you've built!
 
 class GHAapp < Sinatra::Application
 
-# Never, ever, hardcode app tokens or other secrets in your code!
-# Always extract from a runtime source, like an environment variable.
+  # Never, ever, hardcode app tokens or other secrets in your code!
+  # Always extract from a runtime source, like an environment variable.
 
-
-# Notice that the private key must be in PEM format, but the newlines should be stripped and replaced with
-# the literal `\n`. This can be done in the terminal as such:
-# export GITHUB_PRIVATE_KEY=`awk '{printf "%s\\n", $0}' private-key.pem`
+  # Notice that the private key must be in PEM format, but the newlines should be stripped and replaced with
+  # the literal `\n`. This can be done in the terminal as such:
+  # export GITHUB_PRIVATE_KEY=`awk '{printf "%s\\n", $0}' private-key.pem`
   PRIVATE_KEY = OpenSSL::PKey::RSA.new(ENV['GITHUB_PRIVATE_KEY'].gsub('\n', "\n")) # convert newlines
 
-# You set the webhook secret when you create your app. This verifies that the webhook is really coming from GH.
+  # You set the webhook secret when you create your app. This verifies that the webhook is really coming from GH.
   WEBHOOK_SECRET = ENV['GITHUB_WEBHOOK_SECRET']
 
-# Get the app identifier—an integer—from your app page after you create your app. This isn't actually a secret,
-# but it is something easier to configure at runtime.
+  # Get the app identifier—an integer—from your app page after you create your app. This isn't actually a secret,
+  # but it is something easier to configure at runtime.
   APP_IDENTIFIER = ENV['GITHUB_APP_IDENTIFIER']
 
 
-########## Configure Sinatra
-#
-# Let's turn on verbose logging during development
-#
+  ########## Configure Sinatra
+  #
+  # Let's turn on verbose logging during development
+  #
   configure :development do
     set :logging, Logger::DEBUG
   end
 
 
-########## Before each request to our app
-#
-# Before each request to our app, we want to instantiate an Octokit client. Doing so requires that we construct a JWT.
-# https://jwt.io/introduction/
-# We have to also sign that JWT with our private key, so GitHub can be sure that
-#  a) it came from us
-#  b) it hasn't been altered by a malicious third party
-#
+  ########## Before each request to our app
+  #
+  # Before each request to our app, we want to instantiate an Octokit client. Doing so requires that we construct a JWT.
+  # https://jwt.io/introduction/
+  # We have to also sign that JWT with our private key, so GitHub can be sure that
+  #  a) it came from us
+  #  b) it hasn't been altered by a malicious third party
+  #
   before do
     payload = {
         # The time that this JWT was issued, _i.e._ now.
@@ -89,11 +87,9 @@ class GHAapp < Sinatra::Application
   end
 
 
-
-########## Events
-#
-# This is the webhook endpoint that GH will call with events, and hence where we will do our event handling
-#
+  ########## Events
+  #
+  # This is the webhook endpoint that GH will call with events, and hence where we will do our event handling
 
   post '/' do
     request.body.rewind
@@ -125,8 +121,8 @@ class GHAapp < Sinatra::Application
 
     case request.env['HTTP_X_GITHUB_EVENT']
     when 'push'
-      if payload['ref'] === 'refs/heads/test_env_branch'
-        handle_the_event_that_i_care_about(payload)
+      if payload['ref'] == 'refs/heads/test_env_branch'
+        handle_the_event_that_i_care_about
       end
     end
 
@@ -134,27 +130,26 @@ class GHAapp < Sinatra::Application
   end
 
 
-########## Helpers
-#
-# These functions are going to help us do some tasks that we don't want clogging up the happy paths above, or
-# that need to be done repeatedly. You can add anything you like here, really!
-#
+  ########## Helpers
+  #
+  # These functions are going to help us do some tasks that we don't want clogging up the happy paths above, or
+  # that need to be done repeatedly. You can add anything you like here, really!
 
   helpers do
     # This is our handler for the event that you care about! Of course, you'll want to change the name to reflect
     # the actual event name! But this is where you will add code to process the event.
-    def handle_the_event_that_i_care_about(payload)
+    def handle_the_event_that_i_care_about
       # gather branches
 
       # grab the last x unique branches merged to master (based on commits?)
       # grab the last x unique branches merged to test_env_branch (based on commits?)
       # find the most recent shared branch between master and test_env_branch
       # print unique branches merged to test_env_branch since shared branch
-      logger.debug get_branches
+      logger.debug env_branches
       true
     end
 
-    def get_branches
+    def env_branches
       api_url = 'https://api.github.com/repos/gwieneke/gw_test/branches'
       return_api_json(api_url)
     end
@@ -166,11 +161,10 @@ class GHAapp < Sinatra::Application
     end
   end
 
-
-# Finally some logic to let us run this server directly from the commandline, or with Rack
-# Don't worry too much about this code ;) But, for the curious:
-# $0 is the executed file
-# __FILE__ is the current file
-# If they are the same—that is, we are running this file directly, call the Sinatra run method
+  # Finally some logic to let us run this server directly from the commandline, or with Rack
+  # Don't worry too much about this code ;) But, for the curious:
+  # $0 is the executed file
+  # __FILE__ is the current file
+  # If they are the same—that is, we are running this file directly, call the Sinatra run method
   run! if __FILE__ == $0
 end
