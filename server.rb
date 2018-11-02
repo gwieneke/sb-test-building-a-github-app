@@ -150,8 +150,16 @@ class GHAapp < Sinatra::Application
     end
 
     def env_branches
-      api_url = 'https://api.github.com/repos/gwieneke/gw_test/branches'
+      api_url = [REPO_NAME] + '/branches'
       return_api_json(api_url)
+    end
+
+    def commits_for_branch(branch_name)
+      branch_api_url = [REPO_NAME] + "/branches/#{branch_name}"
+      branch_data = return_api_json(branch_api_url)
+      sha = branch_data["commit"]["sha"]
+      commit_api_url = [REPO_NAME] + "/commits?per_page=100&sha=#{sha}"
+      return_api_json(commit_api_url)
     end
 
     def return_api_json(api_url)
